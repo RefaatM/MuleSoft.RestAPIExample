@@ -1,0 +1,361 @@
+#%RAML 1.0
+title: GTBooks
+description: |
+  GTBooks Example
+version: '1.0'
+mediaType:
+  - application/json
+  - application/xml
+protocols:
+  - HTTP
+baseUri: /api/v1.0
+
+types:
+  CreateAuthor:
+    description: This is a new DataType
+    type: object
+    properties:
+      Name:
+        required: true
+        example: Moustafa Refaat
+        description: Author Name
+        type: string
+      Nationality:
+        required: true
+        example: Canadian
+        description: 'Author Nationality '
+        type: string
+      Date-of-Birth:
+        required: true
+        example: '2018-12-09'
+        description: Author Date of Birth
+        type: date-only
+      Date-of-Death:
+        required: false
+        example: '2018-12-09'
+        description: Author Date of Beath
+        type: date-only
+    
+  Author:
+    description: This is a new DataType
+    type: CreateAuthor
+    properties:
+      Id:
+        required: true
+        example: 1
+        description: Author Id
+        type: integer
+      Age:
+        required: true
+        maximum: 200
+        minimum: 8
+        example: 10
+        description: Author Age
+        type: integer 
+
+  AuthorHateoas:
+    description: Author with Hateoas information LINKS
+    type: Author
+    properties:
+      Links:
+        required: true
+        description: Property description
+        type: array
+        items:
+          required: true
+          type: Link
+ 
+  CreateBook:
+    description: Create Book Info
+    type: object
+    properties:
+      Name:
+        required: true
+        example: Example
+        description: Book Name
+        type: string
+      Genre:
+        required: true
+        example: Example
+        description: Book Genere
+        type: string
+      Stars-Rating:
+        required: false
+        maximum: 5
+        minimum: 0
+        example: 1
+        description: Book Rating
+        type: integer
+      ISBN:
+        required: true
+        example: Example
+        description: Book ISBN
+        type: string
+      PublishDate:
+        required: true
+        example: '2018-12-09'
+        description: Book Publish Date
+        type: date-only
+  Book:
+    description: Book Info
+    type: CreateBook
+    properties:
+      Id:
+        required: true
+        example: 1
+        description: Book Id
+        type: integer
+        
+  BookHateoas:
+    description: Book Information with Hateoas links
+    type: Author
+    properties:
+      Links:
+        required: true
+        description: Property description
+        type: array
+        items:
+          required: true
+          type: Link
+ 
+  Link:
+    description: Hateoas LINK
+    type: object
+    properties:
+      href:
+        required: true
+        example: /Book/10
+        description: URL Link
+        type: string
+      rel:
+        required: true
+        example: GetBook
+        description: Operation
+        type: string
+      method:
+        required: true
+        example: GET
+        description: 'HTTP Method Get, PUT,..'
+        type: string
+/author:
+  get:
+    responses:
+      '200':
+        body:
+          application/json:
+            type: array
+            items:
+              type: Author
+          application/hateaos+json:
+            type: array
+            items:
+              type: AuthorHateoas
+      '304': {}
+      '400': {}
+      '500': {}
+    headers:
+      Accept:
+        example: 'application/json '
+        description: application/json or application/hateaos+json
+        type: string
+    queryParameters:
+      sort-by:
+        required: false
+        example: Example
+        description: sort by
+        type: string
+      filteryby:
+        required: false
+        example: Example
+        description: Property description
+        type: string
+  post:
+    responses:
+      '201':
+        body:
+          application/json:
+            type: Author
+          application/hateaos+json:
+            type: AuthorHateoas
+      '400': {}
+      '401': {}
+      '404': {}
+      '500': {}
+    body:
+      application/json:
+        description: 'Object to be added '
+        type: CreateAuthor
+  '/{id}':
+    get:
+      responses:
+        '200':
+          body:
+            application/json:
+              type: Author
+            application/hateaos+json:
+              type: AuthorHateoas
+      headers:
+        Accept:
+          example: application/json
+          description: application/json or application/hateaos+json
+          type: string
+    post:
+      responses:
+        '400': {}
+        '401': {}
+        '404': {}
+      headers:
+        content-type:
+          example: application/json
+          description: application/json
+          type: string
+      body:
+        application/json:
+          type: object
+    put:
+      responses:
+        '204': {}
+        '304': {}
+        '400': {}
+        '401': {}
+        '404': {}
+        '500': {}
+      headers:
+        Content-Type:
+          example: application/json
+          description: Property description
+          type: string
+      body:
+        application/json:
+          type: CreateAuthor
+    delete:
+      responses:
+        '204': {}
+        '400': {}
+        '401': {}
+        '404': {}
+        '500': {}
+      queryParameters:
+        id:
+          example: 1
+          description: Property description
+          type: integer
+    options:
+      responses:
+        '200': {}
+    head:
+      responses:
+        '200': {}
+      headers:
+        newHeader:
+          example: Example
+          description: Property description
+          type: string
+    /books:
+      get:
+        responses:
+          '200': 
+              body:
+               application/json:
+                type: array
+                items:
+                  type: Book
+               application/hateaos+json:
+                type: array
+                items:
+                  type: BookHateoas
+          '400': {}
+          '401': {}
+          '500': {}
+      post:
+        responses:
+          '201': {}
+          '400': {}
+          '401': {}
+          '500': {}
+        body:
+          application/json:
+             description: 'Object to be added '
+             type: CreateAuthor
+      '/{id}':
+        get:
+          responses:
+            '200':
+              body:
+                application/json:
+                 type: Author
+                application/hateaos+json:
+                  type: AuthorHateoas
+              headers:
+                Accept:
+                  example: application/json
+                  description: application/json or application/hateaos+json
+                  type: string
+        post:
+          responses:
+            '400': {}
+            '401': {}
+            '404': {}
+          headers:
+            content-type:
+              example: application/json
+              description: application/json
+              type: string
+          body:
+             application/json:
+               type: object
+        put:
+          responses:
+            '204': {}
+            '304': {}
+            '400': {}
+            '401': {}
+            '404': {}
+            '500': {}
+          headers:
+            Content-Type:
+              example: application/json
+              description: Property description
+              type: string
+          body:
+            application/json:
+              type: CreateAuthor
+        delete:
+          responses:
+            '204': {}
+            '400': {}
+            '401': {}
+            '404': {}
+            '500': {}
+          queryParameters:
+            id:
+             example: 1
+             description: Property description
+             type: integer
+      
+/books:
+  get:
+    responses:
+      '200':
+        body:
+          application/json:
+            type: array
+            items:
+              type: Book
+          application/hateaos+json:
+            type: array
+            items:
+              type: BookHateoas
+    queryParameters:
+      genre:
+        example: Example
+        description: Property description
+        type: string
+      sortby:
+        example: Example
+        description: Property description
+        type: string
+      filter-by:
+        example: Example
+        description: Property description
+        type: string

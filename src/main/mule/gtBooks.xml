@@ -1,0 +1,326 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd 
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
+    <http:listener-config name="gtBooks-httpListenerConfig">
+        <http:listener-connection host="0.0.0.0" port="8081" />
+    </http:listener-config>
+    <apikit:config name="gtBooks-config" raml="gtBooks.raml" outboundHeadersMapName="outboundHeaders" httpStatusVarName="httpStatus" keepRamlBaseUri="true">
+		<apikit:flow-mappings >
+			<apikit:flow-mapping resource="/author" action="get" content-type="application/json" flow-ref="get:\author:gtBooks-config" />
+			<apikit:flow-mapping resource="/author" action="post" content-type="application/json" flow-ref="post:\author:application\json:gtBooks-config" />
+			<apikit:flow-mapping resource="/author/{id}" action="get" content-type="application/json" flow-ref="get:\author\(id):gtBooks-config" />
+			<apikit:flow-mapping resource="/author/{id}" action="put" content-type="application/json" flow-ref="put:\author\(id):application\json:gtBooks-config" />
+			<apikit:flow-mapping resource="/author/{id}" action="delete" content-type="application/json" flow-ref="delete:\author\(id):gtBooks-config" />
+		</apikit:flow-mappings>
+	</apikit:config>
+    <db:config name="Database_Config" doc:name="Database Config" doc:id="b901bcf9-c40b-4e5b-a224-45ba3ef39590" >
+		<db:my-sql-connection host="localhost" port="3306" user="root" password="Ind1@na5$" database="GTBooks"/>
+	</db:config>
+	<flow name="gtBooks-main">
+        <http:listener config-ref="gtBooks-httpListenerConfig" path="api/v1.0/*" outputMimeType="application/json">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body><![CDATA[#[payload]]]></http:body>
+            </http:error-response>
+        </http:listener>
+		<apikit:router config-ref="gtBooks-config" />
+        <logger level="INFO" doc:name="Logger" doc:id="1a35b836-e3d3-4e66-8066-fae6c3df80cf" />
+		<error-handler>
+            <on-error-propagate type="APIKIT:BAD_REQUEST">
+                <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd" doc:id="17607684-d39c-4334-a5cb-1a5338d4e5af">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Bad request"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus"><![CDATA[400]]></ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_FOUND">
+                <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Resource not found"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">404</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:METHOD_NOT_ALLOWED">
+                <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Method not allowed"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">405</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_ACCEPTABLE">
+                <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Not acceptable"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">406</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:UNSUPPORTED_MEDIA_TYPE">
+                <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Unsupported media type"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">415</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_IMPLEMENTED">
+                <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Not Implemented"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">501</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+	<flow name="get:\author:gtBooks-config" tracking:enable-default-events="true">
+		<set-variable value='#[if( isEmpty(message.attributes.queryParams.filteryby) == false)
+    message.attributes.queryParams.filteryby else "*"]' doc:name="Set Where Clause" doc:id="a2115ccb-70a2-421e-8941-69e54a1fd35c" variableName="whereClause"/>
+		<set-variable value='#[if( isEmpty(message.attributes.queryParams."sort-by") == false)
+    message.attributes.queryParams."sort-by" else "id"]' doc:name="set sortClause" doc:id="9cfb42a0-f685-49ea-9681-526e5d450d7c" variableName="sortClause"/>
+		<set-variable value='#[message.attributes.headers.Accept == "application/hateaos+json"]' doc:name="setisHATEAOS" doc:id="101f4ecd-1b27-4c34-83f4-2c396e7a117f" variableName="isHATEAOS"/>
+		<choice doc:name="SelectwithWhere?" doc:id="c7c4b27b-4a8a-498b-8863-d96f2f156684" >
+			<when expression="isEmpty(message.attributes.queryParams.filteryby) == false">
+				<db:select doc:name="Select" doc:id="9e2c0e24-14bf-4a32-9408-cc5f452dfc42" config-ref="Database_Config">
+			<db:sql>select * from authors where name = :filterby order by :sortClause</db:sql>
+			<db:input-parameters><![CDATA[#[{
+filterby : message.attributes.queryParams.filteryby,
+sortClause: vars.sortClause}]]]></db:input-parameters>
+		</db:select>
+			</when>
+			<otherwise >
+				<db:select doc:name="Select" doc:id="ba6371ff-7e76-4dc6-adaa-0cf327c7ad3d" config-ref="Database_Config">
+					<db:sql >select * from authors order by :sortClause</db:sql>
+					<db:parameter-types />
+					<db:input-parameters ><![CDATA[#[{
+	sortClause: message.attributes.queryParams."sort-by"
+}]]]></db:input-parameters>
+				</db:select>
+			</otherwise>
+		</choice>
+		<logger level="INFO" doc:name="Logger" doc:id="97b975a4-a5c2-48d9-891d-257e42214c73" message="#[%dw 2.0
+output application/java
+---
+vars.selectStatement]"/>
+		<ee:transform doc:name="Transform Message" doc:id="7228950e-c809-4c4c-ba61-eab4bf32a980" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+
+fun calcAge(doe:Date,dob:Date)=  doe - dob
+
+fun calcAge(dob:Date)= now() - dob
+---
+payload map ( payload01 , indexOfPayload01 ) -> {
+	"Date-of-Birth": payload01.DateOfBirth as String,
+	"Date-of-Death":  if  (payload01.DateOfDeath == null) null else payload01.DateOfDeath as String ,
+	Id: payload01.Id,
+	Nationality: payload01.Nationality,
+	Name: payload01.Name,
+    Age: if (payload01.DateOfDeath == null) calcAge(payload01.DateOfBirth).years else calcAge(payload01.DateOfDeath,payload01.DateOfBirth).years as Number
+    
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<choice doc:name="HATEAOS?" doc:id="dd9b4953-a2aa-496a-b5ff-cd4e3d80dbc8" >
+			<when doc:id="4f66331d-1694-41c8-bbc3-a07259177257" expression="#[%dw 2.0
+output application/java
+---
+vars.isHATEAOS]">
+				<ee:transform doc:name="Transform Message" doc:id="4ee6b98b-b377-4e87-83ff-b5860fe5843b" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload map ( payload01 , indexOfPayload01 ) -> {
+	
+	Id: payload01.Id,
+	Name: payload01.Name,
+	Nationality: payload01.Nationality,
+	"Date-of-Birth": payload01."Date-of-Birth",
+	"Date-of-Death": payload01."Date-of-Death" as String,
+	Age: payload01.Age,
+    Links: [
+    	{}
+    ]
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</when>
+		</choice>
+		<logger level="INFO" message="get:\author:gtBooks-config" />
+    </flow>
+    <flow name="post:\author:application\json:gtBooks-config">
+        <logger level="INFO" message="post:\author:application\json:gtBooks-config" />
+    </flow>
+	<flow name="get:\author\(id):gtBooks-config">
+        <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core">
+            <ee:variables>
+                <ee:set-variable variableName="id">attributes.uriParams.id</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <logger level="INFO" message="get:\author\(id):gtBooks-config" />
+    </flow>
+	<flow name="put:\author\(id):application\json:gtBooks-config">
+        <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core">
+            <ee:variables>
+                <ee:set-variable variableName="id">attributes.uriParams.id</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <logger level="INFO" message="put:\author\(id):application\json:gtBooks-config" />
+    </flow>
+	<flow name="delete:\author\(id):gtBooks-config">
+        <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core">
+            <ee:variables>
+                <ee:set-variable variableName="id">attributes.uriParams.id</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <logger level="INFO" message="delete:\author\(id):gtBooks-config" />
+    </flow>
+	<flow name="gtBooks-console">
+        <http:listener config-ref="gtBooks-httpListenerConfig" path="/console/*">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body>#[payload]</http:body>
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:error-response>
+        </http:listener>
+        <apikit:console config-ref="gtBooks-config" />
+        <error-handler>
+            <on-error-propagate type="APIKIT:NOT_FOUND">
+                <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Resource not found"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">404</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+	<flow name="put:\author\(id)\books\(id):application\json:gtBooks-config">
+        <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core">
+            <ee:variables>
+                <ee:set-variable variableName="id">attributes.uriParams.id</ee:set-variable>
+                <ee:set-variable variableName="id">attributes.uriParams.id</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <logger level="INFO" message="put:\author\(id)\books\(id):application\json:gtBooks-config" />
+    </flow>
+	<flow name="delete:\author\(id)\books\(id):gtBooks-config">
+        <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core">
+            <ee:variables>
+                <ee:set-variable variableName="id">attributes.uriParams.id</ee:set-variable>
+                <ee:set-variable variableName="id">attributes.uriParams.id</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <logger level="INFO" message="delete:\author\(id)\books\(id):gtBooks-config" />
+    </flow>
+	<flow name="get:\books:gtBooks-config">
+        <logger level="INFO" message="get:\books:gtBooks-config" />
+    </flow>
+	<flow name="head:\author\(id):gtBooks-config">
+        <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core">
+            <ee:variables>
+                <ee:set-variable variableName="id">attributes.uriParams.id</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <logger level="INFO" message="head:\author\(id):gtBooks-config" />
+    </flow>
+    <flow name="options:\author\(id):gtBooks-config">
+        <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core">
+            <ee:variables>
+                <ee:set-variable variableName="id">attributes.uriParams.id</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <logger level="INFO" message="options:\author\(id):gtBooks-config" />
+    </flow>
+    <flow name="get:\author\(id)\books:gtBooks-config">
+        <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core">
+            <ee:variables>
+                <ee:set-variable variableName="id">attributes.uriParams.id</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <logger level="INFO" message="get:\author\(id)\books:gtBooks-config" />
+    </flow>
+    <flow name="get:\author\(id)\books\(id):gtBooks-config">
+        <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core">
+            <ee:variables>
+                <ee:set-variable variableName="id">attributes.uriParams.id</ee:set-variable>
+                <ee:set-variable variableName="id">attributes.uriParams.id</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <logger level="INFO" message="get:\author\(id)\books\(id):gtBooks-config" />
+    </flow>
+    <flow name="gtBooksFlow" doc:id="17038bd1-979e-4c95-96ce-d044b1ecafc5" >
+		<set-payload value="#[payload]" doc:name="Set Payload" doc:id="fcd042c3-a8e0-4f86-b060-be5aa65bb9d0" />
+	</flow>
+	<flow name="post:\author\(id)\books:application\json:gtBooks-config">
+        <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core">
+            <ee:variables>
+                <ee:set-variable variableName="id">attributes.uriParams.id</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <logger level="INFO" message="post:\author\(id)\books:application\json:gtBooks-config" />
+    </flow>
+    <flow name="post:\author\(id)\books\(id):application\json:gtBooks-config">
+        <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core">
+            <ee:variables>
+                <ee:set-variable variableName="id">attributes.uriParams.id</ee:set-variable>
+                <ee:set-variable variableName="id">attributes.uriParams.id</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <logger level="INFO" message="post:\author\(id)\books\(id):application\json:gtBooks-config" />
+    </flow>
+    <flow name="post:\author\(id):application\json:gtBooks-config">
+        <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core">
+            <ee:variables>
+                <ee:set-variable variableName="id">attributes.uriParams.id</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <logger level="INFO" message="post:\author\(id):application\json:gtBooks-config" />
+    </flow>
+</mule>
